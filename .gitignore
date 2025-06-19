@@ -11,3 +11,4 @@ vipraco-frontend/.env
 
 # Log files
 *.log
+.DS_Store
