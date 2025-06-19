@@ -24,6 +24,8 @@ app.use("/api/policies", policyRoutes);
 const payrollRoutes = require("./routes/payroll.routes");
 app.use("/api/payroll", payrollRoutes);
 
+const authRoutes = require("./routes/auth");
+app.use("/api/auth", authRoutes);
 
 /*app.get("/", (req, res) => {
     res.send("✅ VipraCo Backend is running!");
@@ -51,7 +53,7 @@ db.sequelize.authenticate()
 
 app.post("/api/chat", async (req, res) => {
   const message = req.body.message;
-  const userId = "TCI_EMP002"; // hardcoded for now
+  const userId = req.body.userId; // hardcoded for now
   const orgId = "TECHCORP_IN";
 
   const reply = await chatbot(message, userId, orgId);
