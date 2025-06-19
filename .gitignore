@@ -1,0 +1,13 @@
+# Node modules (both frontend and backend)
+vipraco-backend/node_modules/
+vipraco-frontend/node_modules/
+
+# Build artifacts
+vipraco-frontend/dist/
+
+# Env files
+vipraco-backend/.env
+vipraco-frontend/.env
+
+# Log files
+*.log
