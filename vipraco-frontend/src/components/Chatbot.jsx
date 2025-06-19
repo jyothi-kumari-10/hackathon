@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./Chatbot.css";
 
-export default function Chatbot({ userId, onLogout }) {
+export default function Chatbot({ userId,orgId, onLogout }) {
   const [messages, setMessages] = useState([
     { sender: "bot", text: "Hi! I’m VipraBot. Ask me about your leave, manager, DOJ, etc." }
   ]);
@@ -14,6 +14,11 @@ export default function Chatbot({ userId, onLogout }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ✅ Log userId on first load
+  useEffect(() => {
+    console.log("Using userId:", userId);
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -23,7 +28,8 @@ export default function Chatbot({ userId, onLogout }) {
     try {
       const res = await axios.post("http://localhost:3001/api/chat", {
   message: input,
-  userId: userId
+  userId: userId,
+  orgId: orgId 
 });
 
       const botMessage = { sender: "bot", text: res.data.reply };
@@ -49,14 +55,14 @@ export default function Chatbot({ userId, onLogout }) {
         style={{
           marginBottom: "10px",
           padding: "6px 12px",
-          background: "#dc3545",
+          background: "#0000FF",
           color: "#fff",
           border: "none",
           borderRadius: "4px",
           cursor: "pointer"
         }}
       >
-        🔓 Logout
+        Logout
       </button>
     </div>
 

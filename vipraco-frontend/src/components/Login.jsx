@@ -14,7 +14,7 @@ export default function Login({ onLogin }) {
       });
 
       if (res.data.success) {
-        onLogin(res.data.userId); // Send userId to parent
+        onLogin(res.data.userId, res.data.orgId); // Send userId to parent
       } else {
         setError("Invalid credentials");
       }

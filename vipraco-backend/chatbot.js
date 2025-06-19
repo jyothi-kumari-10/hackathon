@@ -1,99 +1,186 @@
 const axios = require("axios");
-
 const baseUrl = "http://localhost:3001";
 
 async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
   message = message.toLowerCase();
 
   try {
-    // 💬 LEAVE BALANCE
-    if (message.includes("leave") || message.includes("leaves")) {
-      const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
-      const data = res.data;
+    // Fetch current user data
+    const userRes = await axios.get(`${baseUrl}/api/users/${userId}`);
+    const user = userRes.data;
 
-      let reply = "📆 Your leave balance:\n";
-      data.forEach(item => {
-        reply += `• ${item.leave_type}: ${item.total_allotted - item.leaves_taken} remaining (${item.leaves_taken} taken)\n`;
-      });
-
-      return reply;
+    // 1. Employee ID
+    if (message.includes("employee id")) {
+      return `Your employee ID is: ${user.user_id}`;
     }
 
-    // 💬 HOLIDAY or POLICY
-    if (message.includes("holiday") || message.includes("policy")) {
+    // 2. Designation
+    if (message.includes("designation") || message.includes("role")) {
+      return `Your current role is: ${user.role}`;
+    }
+
+    // 3. Manager (Self)
+    if (message.includes("manager") && !message.includes("rahul")) {
+      if (!user.manager_id) return "You don’t have a manager assigned.";
+      const mgrRes = await axios.get(`${baseUrl}/api/users/${user.manager_id}`);
+      const mgr = mgrRes.data;
+      return `Your manager is ${mgr.first_name} ${mgr.last_name}.`;
+    }
+
+    // 4. Official Email
+    if (message.includes("email")) {
+      return `Your official email is: ${user.email}`;
+    }
+
+    // 5. Date of Joining
+    if (message.includes("date of joining") || message.includes("doj") || message.includes("join")) {
+      const doj = new Date(user.date_of_joining);
+      const formatted = doj.toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' });
+      return `You joined on ${formatted}.`;
+    }
+
+    // 6. Department
+    if (message.includes("department")) {
+      return `You work in the ${user.department} department.`;
+    }
+
+    // 7. Casual Leave Balance
+    if (message.includes("casual leave")) {
+      const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
+      const casual = res.data.find(l => l.leave_type.toLowerCase() === "casual leave");
+      if (casual) return `You have ${casual.total_allotted - casual.leaves_taken} casual leaves left.`;
+    }
+
+    // 8. Earned Leave Balance
+    if (message.includes("earned leave")) {
+      const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
+      const earned = res.data.find(l => l.leave_type.toLowerCase() === "earned leave");
+      if (earned) return `Your earned leave balance is ${earned.total_allotted - earned.leaves_taken}.`;
+    }
+
+    // 9. Sick Leaves Taken
+    if (message.includes("sick leave")) {
+      const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
+      const sick = res.data.find(l => l.leave_type.toLowerCase() === "sick leave");
+      if (sick) return `You have taken ${sick.leaves_taken} sick leaves.`;
+    }
+
+    // 10. Pending Leave Approvals
+    if (message.includes("pending approval")) {
+      const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
+      const total = res.data.reduce((sum, l) => sum + l.leaves_pending_approval, 0);
+      return `You have ${total} leave(s) pending approval.`;
+    }
+
+    // 11. Work From Home Policy
+    if (message.includes("work from home")) {
+      const res = await axios.get(`${baseUrl}/api/policies/${orgId}`);
+      const match = res.data.find(p => p.policy_title.toLowerCase().includes("work from home"));
+      if (match) return `${match.policy_title}:\n${match.policy_content}`;
+    }
+
+    // 12–15. General Policy Matching
+    if (
+      message.includes("policy") ||
+      message.includes("holiday") ||
+      message.includes("regulation") ||
+      message.includes("attendance")
+    ) {
       const res = await axios.get(`${baseUrl}/api/policies/${orgId}`);
       const data = res.data;
 
-      const relevant = data.find(p => message.includes(p.policy_category?.toLowerCase()) || message.includes(p.keywords?.toLowerCase()));
+      // 12. Travel Policy
+      if (message.includes("travel") || message.includes("expense")) {
+        const travel = data.find(p => p.policy_title.toLowerCase().includes("travel"));
+        if (travel) return `${travel.policy_title}:\n${travel.policy_content}`;
+      }
+
+      // 13. Next Company Holiday
+      if (message.includes("next") && message.includes("holiday")) {
+        const holiday = data.find(p => p.policy_title.toLowerCase().includes("holiday"));
+        if (holiday) return `${holiday.policy_title}:\n${holiday.policy_content}`;
+      }
+
+      // 14. Safety Regulations
+      if (message.includes("safety regulation") || message.includes("safety policy")) {
+        const safety = data.find(p => p.policy_title.toLowerCase().includes("safety"));
+        if (safety) return `${safety.policy_title}:\n${safety.policy_content}`;
+      }
+
+      // 15. Attendance Policy
+      if (message.includes("attendance policy") || message.includes("punctuality")) {
+        const attendance = data.find(p => p.policy_title.toLowerCase().includes("attendance"));
+        if (attendance) return `${attendance.policy_title}:\n${attendance.policy_content}`;
+      }
+
+      // Fallback
+      const relevant = data.find(p =>
+        message.includes(p.policy_category?.toLowerCase()) ||
+        message.includes(p.policy_title?.toLowerCase()) ||
+        message.includes(p.keywords?.toLowerCase())
+      );
+
       if (relevant) {
-        return `📋 *${relevant.policy_title}*:\n${relevant.policy_content}`;
-      } else {
-        return `🔍 No specific policy matched your query, but here are some keywords you can try: "WFH", "holiday", "travel"`;
+        return `${relevant.policy_title}:\n${relevant.policy_content}`;
       }
+
+      return `No exact policy matched. Try keywords like: WFH, attendance, holiday, safety, travel.`;
     }
 
-    // 💬 SALARY or PAYROLL
-    if (message.includes("salary") || message.includes("payroll") || message.includes("ctc")) {
+    // 16–20. Payroll
+    if (["salary", "ctc", "pf", "hra", "tax", "payroll"].some(k => message.includes(k))) {
       const res = await axios.get(`${baseUrl}/api/payroll/${userId}`);
-      const data = res.data;
+      const pay = res.data;
+      if (!pay) return `No payroll record found for user ID: ${userId}`;
 
-      return `💰 Your salary breakdown:\n• Base Salary: ₹${data.base_salary}\n• HRA: ₹${data.HRA}\n• CTC: ₹${data.ctc}`;
+      if (message.includes("base salary")) return `Your base salary is ₹${pay.base_salary}`;
+      if (message.includes("ctc")) return `Your total CTC is ₹${pay.ctc}`;
+      if (message.includes("pf")) return `Your PF deduction is ₹${pay.pf_deduction}`;
+      if (message.includes("hra")) return `Your HRA is ₹${pay.HRA}`;
+      if (message.includes("tax")) return `Professional tax deducted is ₹${pay.professional_tax}`;
+      console.log("Got payroll data for:", userId, pay);
+      return `Payroll summary:\n• Base Salary: ₹${pay.base_salary}\n• HRA: ₹${pay.HRA}\n• CTC: ₹${pay.ctc}`;
     }
 
-    // 💬 WHO IS MY MANAGER?
-if (message.includes("manager") || message.includes("report to")) {
-    // Step 1: Get current user
-    const res = await axios.get(`${baseUrl}/api/users/${userId}`);
-    const user = res.data;
+    // 21. Rahul Verma's Manager
+    if (message.includes("rahul verma")) {
+      const empRes = await axios.get(`${baseUrl}/api/users`);
+      const rahul = empRes.data.find(u =>
+        u.first_name.toLowerCase() === "rahul" &&
+        u.last_name.toLowerCase() === "verma"
+      );
 
-    if (!user.manager_id) {
-      return "🤖 You don’t have a manager assigned.";
+      if (rahul?.manager_id) {
+        const mgr = await axios.get(`${baseUrl}/api/users/${rahul.manager_id}`);
+        return `Rahul Verma's manager is ${mgr.data.first_name} ${mgr.data.last_name}`;
+      }
+
+      return `Rahul Verma's manager not found.`;
     }
 
-    // Step 2: Get manager details
-    const mgrRes = await axios.get(`${baseUrl}/api/users/${user.manager_id}`);
-    const manager = mgrRes.data;
+    // 22. TechCorp Policies
+    if (message.includes("techcorp")) {
+      const res = await axios.get(`${baseUrl}/api/policies/TECHCORP_IN`);
+      return res.data.map(p => `• ${p.policy_title}`).join("\n") || `No policies found.`;
+    }
 
-    return `🧑‍💼 Your manager is ${manager.first_name} ${manager.last_name}.`;
-  }
+    // 23. Holidays for UP/Bihar in 2025
+    if (message.includes("up") || message.includes("bihar") || message.includes("2025")) {
+      const res = await axios.get(`${baseUrl}/api/policies/MGFAB_GLOBAL`);
+      const match = res.data.find(p =>
+        p.policy_title.toLowerCase().includes("holiday") ||
+        p.policy_title.toLowerCase().includes("bihar") ||
+        p.policy_title.toLowerCase().includes("2025")
+      );
 
-  // 💬 DATE OF JOINING
-  if (message.includes("date of joining") || message.includes("doj") || message.includes("when did i join")) {
-    const res = await axios.get(`${baseUrl}/api/users/${userId}`);
-    const user = res.data;
+      if (match) return `${match.policy_title}:\n${match.policy_content}`;
+    }
 
-    const doj = new Date(user.date_of_joining);
-    const formatted = doj.toLocaleDateString("en-IN", { year: 'numeric', month: 'long', day: 'numeric' });
-
-    return `📅 You joined the company on ${formatted}.`;
-  }
-
-
-    // 💬 DEPARTMENT
-    if (message.includes("department") || message.includes("team")) {
-        const res = await axios.get(`${baseUrl}/api/users/${userId}`);
-        const user = res.data;
-  
-        return `🏢 You work in the **${user.department}** department.`;
-      }
-  
-          // 💬 LOCATION / OFFICE
-    if (message.includes("location") || message.includes("office") || message.includes("work from")) {
-        const res = await axios.get(`${baseUrl}/api/users/${userId}`);
-        const user = res.data;
-  
-        return `📍 You are based in **${user.location}**.`;
-      }
-  
-      
-    return "🤖 I didn't understand that. You can ask about *leave balance*, *salary*, or *company policies*.";
+    return "I didn't understand that. You can ask about leave, salary, manager, or company policies.";
   } catch (err) {
-    console.error("Chatbot error:", err);
-    return "⚠️ Something went wrong. Please try again.";
+    console.error("Chatbot error (detailed):", err.response?.data || err.message);
+    return "Something went wrong. Please try again.";
   }
-
-
-  
 }
 
 module.exports = chatbot;

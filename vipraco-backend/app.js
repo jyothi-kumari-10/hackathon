@@ -52,9 +52,11 @@ db.sequelize.authenticate()
   const chatbot = require("./chatbot");
 
 app.post("/api/chat", async (req, res) => {
-  const message = req.body.message;
-  const userId = req.body.userId; // hardcoded for now
-  const orgId = "TECHCORP_IN";
+  const { message, userId, orgId } = req.body;
+
+  if (!userId || !orgId) {
+    return res.status(400).json({ reply: "Missing userId or orgId." });
+  }
 
   const reply = await chatbot(message, userId, orgId);
   res.json({ reply });
