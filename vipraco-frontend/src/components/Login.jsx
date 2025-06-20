@@ -1,10 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
@@ -14,7 +16,8 @@ export default function Login({ onLogin }) {
       });
 
       if (res.data.success) {
-        onLogin(res.data.userId, res.data.orgId,email); // Send userId to parent
+        onLogin(res.data.userId, res.data.orgId, email); // Send userId to parent
+        navigate("/chatbot"); // Redirect to chatbot page
       } else {
         setError("Invalid credentials");
       }

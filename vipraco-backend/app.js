@@ -27,6 +27,12 @@ app.use("/api/payroll", payrollRoutes);
 const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 
+const adminAuthRoutes = require("./routes/adminAuth");
+app.use("/api/admin", adminAuthRoutes);
+
+const adminActionsRoutes = require("./routes/adminActions");
+app.use("/api/admin", adminActionsRoutes);
+
 /*app.get("/", (req, res) => {
     res.send("✅ VipraCo Backend is running!");
   });
