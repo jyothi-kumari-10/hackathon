@@ -46,14 +46,14 @@ export default function ChangePassword({ email, onSuccess }) {
         placeholder="Current Password"
         value={currentPassword}
         onChange={(e) => setCurrentPassword(e.target.value)}
-        style={{ width: "100%", marginBottom: 10, padding: 8 }}
+        style={{ width: "100%", marginBottom: 10, padding: 8, boxSizing: "border-box" }}
       />
       <input
         type="password"
         placeholder="New Password"
         value={newPassword}
         onChange={(e) => setNewPassword(e.target.value)}
-        style={{ width: "100%", marginBottom: 10, padding: 8 }}
+        style={{ width: "100%", marginBottom: 10, padding: 8, boxSizing: "border-box" }}
       />
       <button
         onClick={handleChange}

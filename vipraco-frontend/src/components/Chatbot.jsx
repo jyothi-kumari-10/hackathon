@@ -7,8 +7,10 @@ export default function Chatbot({ userId,orgId, onLogout }) {
     { sender: "bot", text: "Hi ! I’m VipraBot. How can I assist you today ?" }
   ]);
   const [input, setInput] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
+
+  
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });

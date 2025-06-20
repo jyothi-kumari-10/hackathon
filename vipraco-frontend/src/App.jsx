@@ -5,6 +5,11 @@ import ChangePassword from "./components/ChangePassword";
 import axios from "axios";
 import "./App.css";
 import ProfilePopup from "./components/ProfilePopup";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginSelection from "./components/LoginSelection";
+import AdminLogin from "./components/AdminLogin";
+import AdminDashboard from "./components/AdminDashboard";
+
 
 function App() {
   const [userId, setUserId] = useState(null);
@@ -63,6 +68,7 @@ function App() {
   }, []);
 
   return (
+    <Router>
     <div className="App">
       <div className="app-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 20px" }}>
         <h1 className="app-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -99,12 +105,14 @@ function App() {
           </div>
         )}
       </div>
-
-      {!userId ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        <>
-          <Chatbot userId={userId} orgId={orgId} onLogout={handleLogout} />
+      <Routes>
+        <Route path="/" element={<LoginSelection />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/chatbot" element={userId ? <Chatbot userId={userId} orgId={orgId} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+        </Routes>
+      
 
           {showChangePass && (
             <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
@@ -123,9 +131,9 @@ function App() {
               </div>
             </div>
           )}
-        </>
-      )}
+      
     </div>
+    </Router>
   );
 }
 
