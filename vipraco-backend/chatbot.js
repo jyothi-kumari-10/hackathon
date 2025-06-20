@@ -3,6 +3,7 @@ const baseUrl = "http://localhost:3001";
 
 async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
   message = message.toLowerCase();
+  let answer = null;
 
   try {
     // Fetch current user data
@@ -10,41 +11,65 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
     const user = userRes.data;
     //NLP Training
 
+    // Greeting based on current time (with multi-intent support)
+    const greetingRegex = /(good morning|good afternoon|good evening|good night)/i;
+    let greetingMatch = message.match(greetingRegex);
+    let greetingResponse = null;
+    if (greetingMatch) {
+      const now = new Date();
+      const hour = now.getHours();
+      let greeting = "Hello";
+      if (hour >= 5 && hour < 12) {
+        greeting = "Good morning";
+      } else if (hour >= 12 && hour < 17) {
+        greeting = "Good afternoon";
+      } else if (hour >= 17 && hour < 21) {
+        greeting = "Good evening";
+      } else {
+        greeting = "Good night";
+      }
+      greetingResponse = `${greeting}, ${user.first_name}!`;
+      // Remove greeting from message for further processing
+      message = message.replace(greetingRegex, "").trim();
+    }
+
     if (message.includes("how are you")) {
-      return `I am fine,Thank you. What about you?`;
+      answer = "I am fine,Thank you. What about you?";
     }
 
     if (message.includes("I am fine")) {
-      return `Glad to know!`;
+      answer = "Glad to know!";
     }
     if (message.includes("Thank you")) {
-      return `Im Glad that I could help!`;
+      answer = "Im Glad that I could help!";
     }
     if (message.includes("What is your name")) {
-      return `I am VipraBot`;
+      answer = "I am VipraBot";
     }
 
     if (message.includes("employee id")) {
       // 1. Employee ID
-      return `Your employee ID is: ${user.user_id}`;
+      answer = `Your employee ID is: ${user.user_id}`;
     }
 
     // 2. Designation
     if (message.includes("designation") || message.includes("role")) {
-      return `Your current role is: ${user.role}`;
+      answer = `Your current role is: ${user.role}`;
     }
 
     // 3. Manager (Self)
     if (message.includes("manager") && !message.includes("rahul")) {
-      if (!user.manager_id) return "You don’t have a manager assigned.";
-      const mgrRes = await axios.get(`${baseUrl}/api/users/${user.manager_id}`);
-      const mgr = mgrRes.data;
-      return `Your manager is ${mgr.first_name} ${mgr.last_name}.`;
+      if (!user.manager_id) answer = "You don't have a manager assigned.";
+      else {
+        const mgrRes = await axios.get(`${baseUrl}/api/users/${user.manager_id}`);
+        const mgr = mgrRes.data;
+        answer = `Your manager is ${mgr.first_name} ${mgr.last_name}.`;
+      }
     }
 
     // 4. Official Email
     if (message.includes("email")) {
-      return `Your official email is: ${user.email}`;
+      answer = `Your official email is: ${user.email}`;
     }
 
     // 5. Date of Joining
@@ -59,12 +84,34 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         month: "long",
         day: "numeric",
       });
-      return `You joined on ${formatted}.`;
+      answer = `You joined on ${formatted}.`;
     }
 
     // 6. Department
     if (message.includes("department")) {
-      return `You work in the ${user.department} department.`;
+      answer = `You work in the ${user.department} department.`;
+    }
+
+    // APPLY FOR LEAVE (Higher Priority)
+    if (
+      (message.includes("apply") || message.includes("request") || message.includes("want") || message.includes("need")) &&
+      (message.includes("casual leave") || message.includes("sick leave") || message.includes("earned leave") || message.includes("annual leave") || message.includes("maternity leave") || message.includes("paternity leave"))
+    ) {
+      try {
+        const applyRes = await axios.post(`${baseUrl}/api/leaves/apply`, {
+          message: message,
+          user_id: userId,
+          organization_id: orgId
+        });
+        answer = applyRes.data.message; // Use the message from the apply leave response
+      } catch (error) {
+        if (error.response && error.response.data && error.response.data.error) {
+          answer = `Error: ${error.response.data.error}`;
+        } else {
+          answer = "Sorry, I encountered an error while applying for your leave. Please try again.";
+          console.error("Error applying for leave:", error);
+        }
+      }
     }
 
     // 7. Casual Leave Balance
@@ -74,9 +121,11 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         (l) => l.leave_type.toLowerCase() === "casual leave"
       );
       if (casual)
-        return `You have ${
+        answer = `You have ${
           casual.total_allotted - casual.leaves_taken
         } casual leaves left.`;
+      else
+        answer = "You have not taken any casual leaves.";
     }
 
     // 8. Earned Leave Balance
@@ -86,9 +135,11 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         (l) => l.leave_type.toLowerCase() === "earned leave"
       );
       if (earned)
-        return `Your earned leave balance is ${
+        answer = `Your earned leave balance is ${
           earned.total_allotted - earned.leaves_taken
         }.`;
+      else
+        answer = "You have not taken any earned leaves.";
     }
 
     // 9. Sick Leaves Taken
@@ -97,7 +148,11 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
       const sick = res.data.find(
         (l) => l.leave_type.toLowerCase() === "sick leave"
       );
-      if (sick) return `You have taken ${sick.leaves_taken} sick leaves.`;
+      if (sick) {
+        answer = `You have taken ${sick.leaves_taken} sick leaves.`;
+      } else {
+        answer = "You have not taken any sick leaves.";
+      }
     }
 
     // 10. Pending Leave Approvals
@@ -107,7 +162,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         (sum, l) => sum + l.leaves_pending_approval,
         0
       );
-      return `You have ${total} leave(s) pending approval.`;
+      answer = `You have ${total} leave(s) pending approval.`;
     }
 
     // 11. Work From Home Policy
@@ -116,7 +171,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
       const match = res.data.find((p) =>
         p.policy_title.toLowerCase().includes("work from home")
       );
-      if (match) return `${match.policy_title}:\n${match.policy_content}`;
+      if (match) answer = `${match.policy_title}:\n${match.policy_content}`;
     }
 
     // 12–15. General Policy Matching
@@ -134,7 +189,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         const travel = data.find((p) =>
           p.policy_title.toLowerCase().includes("travel")
         );
-        if (travel) return `${travel.policy_title}:\n${travel.policy_content}`;
+        if (travel) answer = `${travel.policy_title}:\n${travel.policy_content}`;
       }
 
       // 13. Next Company Holiday
@@ -143,7 +198,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
           p.policy_title.toLowerCase().includes("holiday")
         );
         if (holiday)
-          return `${holiday.policy_title}:\n${holiday.policy_content}`;
+          answer = `${holiday.policy_title}:\n${holiday.policy_content}`;
       }
 
       // 14. Safety Regulations
@@ -154,7 +209,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
         const safety = data.find((p) =>
           p.policy_title.toLowerCase().includes("safety")
         );
-        if (safety) return `${safety.policy_title}:\n${safety.policy_content}`;
+        if (safety) answer = `${safety.policy_title}:\n${safety.policy_content}`;
       }
 
       // 15. Attendance Policy
@@ -166,7 +221,7 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
           p.policy_title.toLowerCase().includes("attendance")
         );
         if (attendance)
-          return `${attendance.policy_title}:\n${attendance.policy_content}`;
+          answer = `${attendance.policy_title}:\n${attendance.policy_content}`;
       }
 
       // Fallback
@@ -178,10 +233,10 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
       );
 
       if (relevant) {
-        return `${relevant.policy_title}:\n${relevant.policy_content}`;
+        answer = `${relevant.policy_title}:\n${relevant.policy_content}`;
       }
 
-      return `No exact policy matched. Try keywords like: WFH, attendance, holiday, safety, travel.`;
+      answer = answer || `No exact policy matched. Try keywords like: WFH, attendance, holiday, safety, travel.`;
     }
 
     // 16–20. Payroll
@@ -192,18 +247,19 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
     ) {
       const res = await axios.get(`${baseUrl}/api/payroll/${userId}`);
       const pay = res.data;
-      if (!pay) return `No payroll record found for user ID: ${userId}`;
-
-      if (message.includes("base salary"))
-        return `Your base salary is ₹${pay.base_salary}`;
-      if (message.includes("ctc")) return `Your total CTC is ₹${pay.ctc}`;
-      if (message.includes("pf"))
-        return `Your PF deduction is ₹${pay.pf_deduction}`;
-      if (message.includes("hra")) return `Your HRA is ₹${pay.HRA}`;
-      if (message.includes("tax"))
-        return `Professional tax deducted is ₹${pay.professional_tax}`;
-      console.log("Got payroll data for:", userId, pay);
-      return `Payroll summary:\n• Base Salary: ₹${pay.base_salary}\n• HRA: ₹${pay.HRA}\n• CTC: ₹${pay.ctc}`;
+      if (!pay) answer = `No payroll record found for user ID: ${userId}`;
+      else {
+        if (message.includes("base salary"))
+          answer = `Your base salary is ₹${pay.base_salary}`;
+        if (message.includes("ctc")) answer = `Your total CTC is ₹${pay.ctc}`;
+        if (message.includes("pf"))
+          answer = `Your PF deduction is ₹${pay.pf_deduction}`;
+        if (message.includes("hra")) answer = `Your HRA is ₹${pay.HRA}`;
+        if (message.includes("tax"))
+          answer = `Professional tax deducted is ₹${pay.professional_tax}`;
+        console.log("Got payroll data for:", userId, pay);
+        answer = `Payroll summary:\n• Base Salary: ₹${pay.base_salary}\n• HRA: ₹${pay.HRA}\n• CTC: ₹${pay.ctc}`;
+      }
     }
 
     // 21. Rahul Verma's Manager
@@ -217,16 +273,16 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
 
       if (rahul?.manager_id) {
         const mgr = await axios.get(`${baseUrl}/api/users/${rahul.manager_id}`);
-        return `Rahul Verma's manager is ${mgr.data.first_name} ${mgr.data.last_name}`;
+        answer = `Rahul Verma's manager is ${mgr.data.first_name} ${mgr.data.last_name}`;
       }
 
-      return `Rahul Verma's manager not found.`;
+      answer = answer || `Rahul Verma's manager not found.`;
     }
 
     // 22. TechCorp Policies
     if (message.includes("techcorp")) {
       const res = await axios.get(`${baseUrl}/api/policies/TECHCORP_IN`);
-      return (
+      answer = (
         res.data.map((p) => `• ${p.policy_title}`).join("\n") ||
         `No policies found.`
       );
@@ -246,14 +302,27 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
           p.policy_title.toLowerCase().includes("2025")
       );
 
-      if (match) return `${match.policy_title}:\n${match.policy_content}`;
+      if (match) answer = `${match.policy_title}:\n${match.policy_content}`;
     }
     if (
       message.includes("hi") ||
       message.includes("hey") ||
       message.includes("hello")
     ) {
-      return `Hello ${user.first_name}! How can I help you?`;
+      answer = `Hello ${user.first_name}! How can I help you?`;
+    }
+    
+    if (greetingResponse && (!message || message === '' || message === ',')) {
+      // Only greeting, no other question
+      return `${greetingResponse} How can I help you?`;
+    }
+    if (answer) {
+      // There is a real answer, prepend greeting if present
+      return greetingResponse ? `${greetingResponse} ${answer}` : answer;
+    }
+    // If nothing matched, fallback
+    if (greetingResponse) {
+      return `${greetingResponse} I didn't understand that. You can ask about leave, salary, manager, or company policies.`;
     }
     return "I didn't understand that. You can ask about leave, salary, manager, or company policies.";
   } catch (err) {

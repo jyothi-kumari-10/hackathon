@@ -4,7 +4,9 @@ import "./Chatbot.css";
 
 export default function Chatbot({ userId, orgId, onLogout }) {
   const [messages, setMessages] = useState([
-    { from: "bot", text: "Hi! How can I assist you today?" }
+
+    { sender: "bot", text: "Hi ! I’m VipraBot. How can I assist you today ?" }
+
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
