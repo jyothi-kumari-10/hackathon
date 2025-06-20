@@ -48,23 +48,6 @@ export default function Chatbot({ userId,orgId, onLogout }) {
 
   return (
   <div className="chat-container">
-    {/* 🔓 Logout button */}
-    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-      <button
-        onClick={onLogout}
-        style={{
-          marginBottom: "10px",
-          padding: "6px 12px",
-          background: "#0000FF",
-          color: "#fff",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer"
-        }}
-      >
-        Logout
-      </button>
-    </div>
 
     {/* 💬 Chat messages */}
     <div className="chat-box">

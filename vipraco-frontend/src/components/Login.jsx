@@ -14,7 +14,7 @@ export default function Login({ onLogin }) {
       });
 
       if (res.data.success) {
-        onLogin(res.data.userId, res.data.orgId); // Send userId to parent
+        onLogin(res.data.userId, res.data.orgId,email); // Send userId to parent
       } else {
         setError("Invalid credentials");
       }
@@ -24,23 +24,24 @@ export default function Login({ onLogin }) {
   };
 
   return (
+    
     <div style={{ padding: 20, maxWidth: 400, margin: "50px auto", border: "1px solid #ccc", borderRadius: 8 }}>
-      <h2>🔐 Employee Login</h2>
+      <h2>Employee Login</h2>
       <input
         type="email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        style={{ width: "100%", marginBottom: 10, padding: 8 }}
+        style={{ width: "100%", marginBottom: 10, padding: 8,boxSizing: "border-box" }}
       />
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        style={{ width: "100%", marginBottom: 10, padding: 8 }}
+        style={{ width: "100%", marginBottom: 10, padding: 8,boxSizing: "border-box" }}
       />
-      <button onClick={handleLogin} style={{ width: "100%", padding: 10 }}>Login</button>
+      <button onClick={handleLogin} style={{ marginBottom: "10px",background: "#0000FF", color: "#fff",border: "none",borderRadius: "4px",cursor: "pointer",padding: 10, width: "100%" }}>Login</button>
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );

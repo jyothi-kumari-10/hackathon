@@ -51,6 +51,12 @@ async function chatbot(message, userId = "TCI_EMP002", orgId = "TECHCORP_IN") {
       if (casual) return `You have ${casual.total_allotted - casual.leaves_taken} casual leaves left.`;
     }
 
+if (message.includes("hi") || message.includes("hey") || message.includes("hello")) {
+  const res = await axios.get(`${baseUrl}/api/users/${userId}`);
+  const data = res.data;
+  return `Hello ${data.first_name}.`;
+}  
+
     // 8. Earned Leave Balance
     if (message.includes("earned leave")) {
       const res = await axios.get(`${baseUrl}/api/leaves/${userId}`);
