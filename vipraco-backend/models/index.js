@@ -17,6 +17,7 @@ db.Users = require("./user.model")(sequelize, DataTypes);
 db.LeaveBalances = require("./leavebalance.model")(sequelize, DataTypes);
 db.CompanyPolicies = require("./companypolicy.model")(sequelize, DataTypes);
 db.PayrollData = require("./payrolldata.model")(sequelize, DataTypes);
+db.Admins = require("./admin.model")(sequelize, DataTypes);
 
 
 module.exports = db;

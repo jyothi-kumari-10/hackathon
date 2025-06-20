@@ -1,10 +1,16 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import axios from "axios";
+
 import Chatbot from "./components/Chatbot";
 import Login from "./components/Login";
 import ChangePassword from "./components/ChangePassword";
-import axios from "axios";
-import "./App.css";
+import LoginSelection from "./components/LoginSelection";
+import AdminLogin from "./components/AdminLogin";
+import AdminDashboard from "./components/AdminDashboard";
 import ProfilePopup from "./components/ProfilePopup";
+
+import "./App.css";
 
 function App() {
   const [userId, setUserId] = useState(null);
@@ -63,7 +69,8 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
+    <Router>
+       <div className="App">
       <div className="app-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 20px" }}>
         <h1 className="app-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <img src="/bot-avatar.png" alt="Bot" className="chat-avatar" /> VipraBot
@@ -99,8 +106,14 @@ function App() {
           </div>
         )}
       </div>
-
-      {!userId ? (
+        <Routes>
+          <Route path="/" element={<LoginSelection />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/chatbot" element={userId ? <Chatbot userId={userId} orgId={orgId} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />} />
+        </Routes>
+              {!userId ? (
         <Login onLogin={handleLogin} />
       ) : (
         <>
@@ -126,6 +139,7 @@ function App() {
         </>
       )}
     </div>
+    </Router>
   );
 }
 
