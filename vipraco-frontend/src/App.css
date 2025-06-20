@@ -1,7 +1,7 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  //max-width: 1280px;
+  margin: 10;
+  padding: 0;
   text-align: center;
 }
 
@@ -41,7 +41,7 @@
   color: #888;
 }
 
-.app-header {
+/* .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -89,4 +89,4 @@
 
 .dropdown-menu button:hover {
   background-color: #f0f0f0;
-}
+} */
